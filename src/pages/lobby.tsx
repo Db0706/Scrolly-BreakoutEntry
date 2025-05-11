@@ -73,11 +73,11 @@ const Leaderboard: React.FC = () => {
 
   const handleShareMyRank = () => {
     const userRankInfo = getUserRankInfo();
-    if (!userRankInfo) return alert("You're not on the leaderboard yet!");
+    if (!userRankInfo) return alert("You are not on the leaderboard yet!");
 
     const { rank, profile } = userRankInfo;
 
-    const text = `I'm ranked #${rank} on the DD Gaming leaderboard with a score of ${profile.topScore}! 🎮 Can you beat me?`;
+    const text = `I am ranked #${rank} on the DD Gaming leaderboard with a score of ${profile.topScore}! 🎮 Can you beat me?`;
     const url = "https://ddgaming.com/leaderboard";
     const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
     window.open(shareUrl, "_blank");
@@ -98,7 +98,7 @@ const Leaderboard: React.FC = () => {
         {userRankInfo ? (
           <>
             <p className="text-lg font-semibold">
-              🧍 You're ranked <span className="text-blue-400">#{userRankInfo.rank}</span> — Top Score:{" "}
+              🧍 You are ranked <span className="text-blue-400">#{userRankInfo.rank}</span> — Top Score:{" "}
               <span className="text-green-400">{userRankInfo.profile.topScore}</span>
             </p>
             <button
@@ -110,7 +110,7 @@ const Leaderboard: React.FC = () => {
           </>
         ) : (
           <p className="text-md text-gray-300">
-            👾 You haven’t made the leaderboard yet — keep playing!
+            👾 You have not made the leaderboard yet — keep playing!
           </p>
         )}
       </div>
@@ -139,7 +139,7 @@ const Leaderboard: React.FC = () => {
                 <div className={styles.rank}>{index + 1}</div>
                 <Image
                   src={profile.info.pfp || "/blank.png"}
-                  alt={`${profile.info.name || "Anonymous"}'s profile`}
+                  alt={`${profile.info.name || "Anonymous"}&apos;s profile`}
                   className={styles.profileImage}
                   width={50}
                   height={50}

@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 
 const TwitterEmbed = ({ tweetUrl }) => {
   useEffect(() => {
-    // Load Twitter's widgets.js script if it's not already loaded
+    // Load Twitter's widgets.js script if its not already loaded
     if (!window.twttr) {
       const script = document.createElement('script');
       script.src = 'https://platform.twitter.com/widgets.js';
