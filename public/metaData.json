@@ -1,0 +1,26 @@
+{
+  "name": "OG DD Gamer",
+  "symbol": "OGDDG",
+  "description": "Limited edition NFT for DD Gaming platform",
+  "image": "https://ipfs.io/ipfs/QmSomeIPFSHashForYourImage",
+  "attributes": [
+    {
+      "trait_type": "Rarity",
+      "value": "OG"
+    }
+  ],
+  "properties": {
+    "files": [
+      {
+        "uri": "./ddgLogo.PNG",
+        "type": "image/png"
+      }
+    ],
+    "creators": [
+      {
+        "address": "5NkxEoq4CiGDfVDjCnCKmkiQ4oDMoPyHaZZQqBJK3eFz",
+        "share": 100
+      }
+    ]
+  }
+}

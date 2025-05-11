@@ -1,0 +1,152 @@
+/* Portfolio.module.css */
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 60px;
+    min-height: 100vh;
+    background: linear-gradient(to bottom right, #1d1d1d, #141414);
+}
+
+.profileSection {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 1200px;
+    padding: 20px;
+    color: #e0e0e0;
+}
+
+.profileCard {
+    background: rgba(40, 40, 40, 0.9);
+    padding: 30px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    text-align: center;
+    backdrop-filter: blur(8px);
+    margin-bottom: 30px;
+}
+
+.profileImage {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    margin-bottom: 15px;
+    border: 3px solid #fff;
+}
+
+.profileDetails p {
+    margin: 5px 0;
+}
+
+.profileButtons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.categoryGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 1000px;
+}
+
+.gridItem {
+    padding: 20px;
+    border-radius: 8px;
+    background: rgba(60, 60, 60, 0.85);
+    color: #d0d0d0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+
+.gridItem:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4);
+}
+
+.button {
+    padding: 10px 20px;
+    background-color: #4a90e2;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease, transform 0.2s;
+}
+
+.button:hover {
+    background-color: #357abd;
+    transform: scale(1.05);
+}
+
+.modalOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal {
+    background: #333;
+    padding: 25px;
+    border-radius: 8px;
+    width: 320px;
+    color: #e0e0e0;
+    text-align: center;
+}
+
+.carousel {
+    display: flex;
+    flex-direction: row; /* Changed to row for carousel effect */
+    overflow-x: auto;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(50, 50, 50, 0.85);
+    border-radius: 8px;
+}
+
+.carousel::-webkit-scrollbar {
+    height: 8px;
+}
+
+.carousel::-webkit-scrollbar-thumb {
+    background-color: #4a90e2;
+    border-radius: 4px;
+}
+
+.carousel img {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.carousel img:hover {
+    transform: scale(1.1);
+    cursor: pointer;
+}
+
+.carousel p {
+    font-size: 14px;
+    text-align: center;
+    margin-top: 5px;
+    color: #b0b0b0;
+}

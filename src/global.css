@@ -1,0 +1,34 @@
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  font-family: 'Press Start 2P', sans-serif;
+  font-smooth: always;
+  -webkit-font-smoothing: antialiased;
+  background: black;
+  overflow: hidden;
+
+  /* ✅ Added for snapping & performance */
+  -webkit-overflow-scrolling: auto; /* iOS momentum scrolling */
+  overscroll-behavior-y: contain;    /* Prevent pull-to-refresh/bounce */
+  scrollbar-width: none;             /* Firefox hide scrollbar */
+  scroll-behavior: auto !important;
+}
+
+body::-webkit-scrollbar {
+  display: none; /* Safari/Chrome hide scrollbar */
+}
+
+a {
+  text-decoration: none;
+}

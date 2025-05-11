@@ -1,0 +1,31 @@
+/* index.module.css */
+
+.container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(to right, #0097ae, #b916fa);
+  }
+  
+  .title {
+    font-size: 48px;
+    color: white;
+    text-align: center;
+  }
+  
+  .scrollArrow {
+    animation: arrowBounce 1.5s infinite;
+    width: 100px;
+    height: 100px;
+  }
+  
+  @keyframes arrowBounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(10px);
+    }
+  }
+  

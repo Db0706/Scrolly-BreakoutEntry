@@ -1,0 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+.navbar {
+    color: white;
+    font-family: 'Press Start 2P', sans-serif;
+    font-size: 14px;
+}
+
+.navItem {
+    font-family: 'Press Start 2P', sans-serif;
+    font-size: 14px; /* Adjust font size for nav items */
+    color: white; /* Ensures text color is white */
+    text-decoration: none;
+}
+
+.scoreLabel, .scoreValue {
+    font-family: 'Press Start 2P', sans-serif;
+    font-size: 18px;
+}
+
+.btn {
+    font-family: 'Press Start 2P', sans-serif;
+    font-size: 14px;
+}
+
+.dropdownButton, .dropdownLink {
+    font-family: 'Press Start 2P', sans-serif;
+    font-size: 14px;
+}

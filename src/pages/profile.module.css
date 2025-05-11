@@ -1,0 +1,265 @@
+/* styles/profile.module.css */
+
+/* .pageContainer {
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+} */
+.pageContainer {
+  background: linear-gradient(180deg, #1a1a2e 0%, #0f0f1c 100%);
+  color: white;
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden; /* Lock horizontal scrolling */
+  max-width: 100vw;   /* Force full width */
+  width: 100vw;       /* Ensure width is strictly full viewport */
+  max-height: 100vh;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pageContainer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 70%);
+  animation: pulse 4s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+}
+
+.card {
+  background: #1f1f3d;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.4);
+}
+
+.heading {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #3b82f6;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  text-align: center;
+}
+
+.subHeading {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem;
+  color: #3b82f6;
+  text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  text-align: center;
+}
+
+.missionItem {
+  padding: 1rem;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 8px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+  text-align: center;
+}
+
+.missionItem:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
+}
+
+.missionTitle {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.actionButton {
+  width: 100%;
+  padding: 0.5rem;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  color: white;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.actionButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.7);
+}
+
+.submitScoreButton {
+  padding: 0.5rem 1rem;
+  background: linear-gradient(90deg, #10b981, #14b8a6);
+  color: white;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.submitScoreButton:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.7);
+}
+
+.balanceText, .tokenBalance {
+  margin-top: 1rem;
+  font-size: 1.125rem;
+  color: #d1d5db;
+  text-align: center;
+}
+
+.stat {
+  font-weight: bold;
+  color: #ec4899;
+  text-shadow: 0 0 5px rgba(236, 72, 153, 0.3);
+}
+
+.profileImage {
+  border-radius: 50%;
+  width: 10rem;
+  height: 10rem;
+  margin: 0 auto 1rem;
+  border: 3px solid #3b82f6;
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+  object-fit: cover;
+}
+
+.bio {
+  text-align: center;
+  color: #d1d5db;
+  margin-bottom: 1rem;
+}
+
+.text {
+  color: #d1d5db;
+  text-align: center;
+}
+
+.socialLink {
+  color: #3b82f6;
+  text-decoration: underline;
+  text-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+}
+
+.socialLink:hover {
+  color: #60a5fa;
+  text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  background: #1f1f3d;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+  width: 100%;
+  max-width: 32rem;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: 'Orbitron', sans-serif;
+  color: #d1d5db;
+}
+
+.input, .textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background-color: #2d2d4a;
+  color: white;
+  border: 2px solid #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+  font-family: 'Orbitron', sans-serif;
+}
+
+.textarea {
+  resize: vertical;
+}
+
+.modalButton {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: none;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.modalButton:first-child {
+  background: linear-gradient(90deg, #10b981, #14b8a6);
+  color: white;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.5);
+}
+
+.modalButton:first-child:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px rgba(16, 185, 129, 0.7);
+}
+
+.modalButton:last-child {
+  background: linear-gradient(90deg, #ef4444, #f87171);
+  color: white;
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+}
+
+.modalButton:last-child:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.7);
+}
+
+.tokenActionGroup {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
