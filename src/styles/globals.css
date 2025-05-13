@@ -1,22 +1,52 @@
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 0) Safe-area vars for iOS notch & bottom bar                                 */
+/*──────────────────────────────────────────────────────────────────────────────*/
+:root {
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+}
+
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 1) Tailwind Directives                                                      */
+/*──────────────────────────────────────────────────────────────────────────────*/
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Global Styles */
-html, body {
-  padding: 0;
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 2) Global Styles (html/body)                                                */
+/*──────────────────────────────────────────────────────────────────────────────*/
+html,
+body {
   margin: 0;
+  padding: 0;
+
+  /* use the “small” viewport height so content never slides under browser UI */
+  width: 100vw !important;
+  height: 100svh !important;
+  overflow: hidden !important;
+
+  /* push page content inside the safe-area insets */
+  padding-top: var(--sat) !important;
+  padding-bottom: var(--sab) !important;
+  padding-left: env(safe-area-inset-left) !important;
+  padding-right: env(safe-area-inset-right) !important;
+
   font-family: 'Poppins', sans-serif;
   background: linear-gradient(145deg, #0097ae, #b916fa);
   color: #ffffff;
-  height: 100%;
 }
-/* In global.css or an imported stylesheet */
+
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 3) Press-Start Font Utility                                                  */
+/*──────────────────────────────────────────────────────────────────────────────*/
 .font-press-start {
   font-family: 'Press Start 2P', Helvetica, sans-serif !important;
 }
 
-/* Header Links */
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 4) Header Links                                                              */
+/*──────────────────────────────────────────────────────────────────────────────*/
 a {
   color: #00eaff;
   text-decoration: none;
@@ -30,7 +60,9 @@ a:hover {
   color: #00ffcc;
 }
 
-/* Logo and Hero Section */
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 5) Logo & Hero Section                                                       */
+/*──────────────────────────────────────────────────────────────────────────────*/
 .hero-logo {
   max-width: 600px;
   margin-bottom: 20px;
@@ -43,15 +75,21 @@ a:hover {
   animation: bounce 2s infinite;
 }
 
-/* Full-screen Height Alignment */
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 6) Full-screen Height Alignment                                              */
+/*──────────────────────────────────────────────────────────────────────────────*/
 .full-screen-flex-center {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+
+  /* fill just the safe-area viewport (no underlap) */
+  height: calc(100svh - var(--sat) - var(--sab)) !important;
 }
 
-/* Button Hover Effects */
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 7) Button Hover Effects                                                      */
+/*──────────────────────────────────────────────────────────────────────────────*/
 .button {
   background-color: #00eaff;
   color: white;
@@ -63,7 +101,9 @@ a:hover {
   cursor: pointer;
 }
 
-/* Wallet Button */
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 8) Wallet Button                                                             */
+/*──────────────────────────────────────────────────────────────────────────────*/
 .wallet-adapter-button {
   background-color: #242424;
   color: #ffffff;
@@ -77,8 +117,12 @@ a:hover {
   box-shadow: 0px 4px 10px rgba(0, 234, 255, 0.4);
 }
 
+/*──────────────────────────────────────────────────────────────────────────────*/
+/* 9) Ad-space                                                                   */
+/*──────────────────────────────────────────────────────────────────────────────*/
 .ad-space {
   width: 12.5%;
-  height: 100vh;
+  /* similarly constrain to safe-area viewport */
+  height: calc(100svh - var(--sat) - var(--sab)) !important;
   background-color: #111;
 }

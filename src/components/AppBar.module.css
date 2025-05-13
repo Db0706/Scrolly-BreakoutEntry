@@ -1,29 +1,50 @@
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
-.navbar {
-    color: white;
-    font-family: 'Press Start 2P', sans-serif;
-    font-size: 14px;
+:root {
+  /* safe‐area insets */
+  --sat: env(safe-area-inset-top);
+  --sab: env(safe-area-inset-bottom);
+  /* height of your AppBar */
+  --appbar-height: 56px;
 }
 
+.appbar {
+  position: fixed;
+  top: var(--sat);
+  left: 0;
+  right: 0;
+  height: var(--appbar-height);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #111;
+  color: white;
+  font-family: 'Press Start 2P', sans-serif;
+  font-size: 14px;
+  z-index: 1000;
+}
+
+/* your existing nav item styles */
 .navItem {
-    font-family: 'Press Start 2P', sans-serif;
-    font-size: 14px; /* Adjust font size for nav items */
-    color: white; /* Ensures text color is white */
-    text-decoration: none;
+  font-family: 'Press Start 2P', sans-serif;
+  font-size: 14px;
+  color: white;
+  text-decoration: none;
 }
 
-.scoreLabel, .scoreValue {
-    font-family: 'Press Start 2P', sans-serif;
-    font-size: 18px;
+.scoreLabel,
+.scoreValue {
+  font-family: 'Press Start 2P', sans-serif;
+  font-size: 18px;
 }
 
 .btn {
-    font-family: 'Press Start 2P', sans-serif;
-    font-size: 14px;
+  font-family: 'Press Start 2P', sans-serif;
+  font-size: 14px;
 }
 
-.dropdownButton, .dropdownLink {
-    font-family: 'Press Start 2P', sans-serif;
-    font-size: 14px;
+.dropdownButton,
+.dropdownLink {
+  font-family: 'Press Start 2P', sans-serif;
+  font-size: 14px;
 }

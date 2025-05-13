@@ -9,10 +9,24 @@ import styles from "./profile.module.css";
 import edgeClient from "src/components/honeycombClient";
 import { sendClientTransactions } from "src/utils/sendClientTransactions";
 import { useScore } from "../contexts/ScoreContext";
+import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
+
+// Use Honeycomb test-net RPC instead of solana.com
+export const RPC_URL = "https://rpc.test.honeycombprotocol.com/";
+export const honeycombConnection = new Connection(RPC_URL, "confirmed");
 
 const ProfilePage: React.FC = () => {
   const wallet = useWallet();
-  const { profile, accessToken, authenticateWithHoneycomb, updateProfile, submitScore, refetchProfile } = useProfile();
+  const {
+    profile,
+    accessToken,
+    authenticateWithHoneycomb,
+    updateProfile,
+    submitScore,
+    refetchProfile,
+    createUserWithProfile,
+    status,
+  } = useProfile();
   const { score, resetScore } = useScore();
 
   const RESOURCE_ADDRESS = "FE9bpXVzdsc3b9u67KLJSqqHc8ukm66RxsRfTfj67dsK";
@@ -24,47 +38,59 @@ const ProfilePage: React.FC = () => {
   const [newBio, setNewBio] = useState(profile?.info.bio || "");
   const [newPfp, setNewPfp] = useState(profile?.info.pfp || "");
 
+  // Sync form fields when profile data loads
+  useEffect(() => {
+    if (profile?.info) {
+      setNewName(profile.info.name || "");
+      setNewBio(profile.info.bio || "");
+      setNewPfp(profile.info.pfp || "");
+    }
+  }, [profile]);
+
+  // Fetch token balance from Honeycomb test-net SOL balance
   const handleGetBalance = useCallback(async () => {
     if (!wallet.publicKey) return;
     try {
-      const { holdings } = await edgeClient.findHoldings({
-        holders: [wallet.publicKey.toString()],
-        trees: [MERKLE_TREE_ADDRESS],
-      });
-      setResourceBalance(holdings?.[0] ? Number(holdings[0].balance) : 0);
+      const lamports = await honeycombConnection.getBalance(
+        wallet.publicKey
+      );
+      setResourceBalance(lamports / LAMPORTS_PER_SOL);
     } catch (error) {
       console.error("Failed to fetch balance:", error);
     }
   }, [wallet.publicKey]);
 
+  // Mint 3 “Gamer Tokens” via Honeycomb airdrop
   const handleMintTokens = useCallback(async () => {
-    if (!wallet.publicKey || !accessToken) return;
-    try {
-      const { createMintResourceTransaction: tx } = await edgeClient.createMintResourceTransaction(
-        {
-          resource: RESOURCE_ADDRESS,
-          owner: wallet.publicKey.toString(),
-          amount: "3",
-          authority: wallet.publicKey.toString(),
-        },
-        {
-          fetchOptions: { headers: { authorization: `Bearer ${accessToken}` } },
-        }
-      );
-      await sendClientTransactions(edgeClient, wallet, tx);
-      await handleGetBalance();
-    } catch (error) {
-      console.error("Failed to mint Gamer Tokens:", error);
+    if (!wallet.publicKey) {
+      alert("Connect your wallet first!");
+      return;
     }
-  }, [wallet.publicKey, accessToken, handleGetBalance]);
 
+    try {
+      const lamports = 3 * LAMPORTS_PER_SOL;
+      const txid = await honeycombConnection.requestAirdrop(
+        wallet.publicKey,
+        lamports
+      );
+
+      alert(`🎉 Airdropped 3 Gamer Tokens! Tx: ${txid}`);
+      await handleGetBalance(); // refresh the balance after airdrop
+    } catch (err: any) {
+      console.error("Airdrop failed:", err);
+      alert(`Airdrop failed: ${err.message}`);
+    }
+  }, [wallet.publicKey, handleGetBalance]);
+
+  // Submit the current score
   const handleSubmitScore = async () => {
-    if (!wallet.publicKey || score <= 0) return alert("Please connect your wallet and ensure score > 0");
+    if (!wallet.publicKey || score <= 0)
+      return alert("Please connect your wallet and ensure score > 0");
     if (!profile) return alert("Please create a profile before submitting a score.");
 
     try {
       if (!accessToken) await authenticateWithHoneycomb();
-      await refetchProfile();         
+      await refetchProfile();
       const result = await submitScore(score);
       if (result) {
         await refetchProfile();
@@ -79,6 +105,7 @@ const ProfilePage: React.FC = () => {
     }
   };
 
+  // Update profile info
   const handleUpdateProfile = async () => {
     if (!profile) return alert("Please create a profile before updating.");
 
@@ -105,25 +132,38 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className={`${styles.pageContainer} min-h-screen w-screen overflow-y-auto flex flex-col gap-4 p-4`}>
-      {/* Display this ONLY if no profile is found */}
+      {/* No profile found */}
       {!profile && wallet.connected && (
         <div className="text-center text-white bg-blue-600 p-4 rounded shadow">
           <p>No profile found for this wallet. Please create one to continue.</p>
-          {/* You can add a Create Profile button here if you have a modal/component for it */}
+          <button
+            onClick={() => createUserWithProfile({ name: newName, bio: newBio, pfp: newPfp })}
+            className={styles.actionButton}
+          >
+            Create Profile
+          </button>
+          {status && <p className="mt-2 text-sm text-gray-300">{status}</p>}
         </div>
       )}
 
+      {/* Main grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+        {/* Portfolio section */}
         <div className={`${styles.card} flex flex-col items-center justify-center`}>
           <Portfolio />
         </div>
 
+        {/* Gamer tokens section */}
         <div className={`${styles.card} ${styles.tokenSection}`}>
           <h2 className={styles.heading}>🎮 Gamer Tokens</h2>
           <p className={styles.text}>Earn and track your on-chain game currency.</p>
           <div className={styles.tokenActionGroup}>
-            <button onClick={handleMintTokens} className={styles.actionButton}>Mint 3 Tokens</button>
-            <button onClick={handleGetBalance} className={styles.actionButton}>Check Balance</button>
+            <button onClick={handleMintTokens} className={styles.actionButton}>
+              Mint 3 Tokens
+            </button>
+            <button onClick={handleGetBalance} className={styles.actionButton}>
+              Check Balance
+            </button>
           </div>
           {resourceBalance !== null && (
             <p className={styles.tokenBalance}>
@@ -132,17 +172,23 @@ const ProfilePage: React.FC = () => {
           )}
         </div>
 
+        {/* Missions section */}
         <div className={styles.card}>
           <h2 className={styles.heading}>Active Missions</h2>
           <div className="grid grid-cols-1 gap-4">
             {missions.map((mission) => (
-              <div key={mission.id} className={styles.missionItem} onClick={() => window.open(mission.link, "_blank")}>
+              <div
+                key={mission.id}
+                className={styles.missionItem}
+                onClick={() => window.open(mission.link, "_blank")}
+              >
                 <h3 className={styles.missionTitle}>{mission.title}</h3>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Latest Tweet section */}
         <div className={styles.card}>
           <h2 className={styles.heading}>Latest Tweet</h2>
           <TwitterEmbed tweetUrl="https://x.com/DDGamingLabs/status/1915061362922852604" />

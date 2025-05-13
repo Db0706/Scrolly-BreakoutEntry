@@ -1,164 +1,163 @@
+// components/GameSnake.tsx
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
-const ASTEROID_SIZE = 30;
-const BULLET_HEIGHT = 10;
-const BULLET_WIDTH = 4;
-const SHIP_WIDTH = 20;
-const SHIP_HEIGHT = 50;
-const BULLET_SPEED = 10;
-const ASTEROID_SPEED = 1;
+const CELL_SIZE = 20;      // size of one snake segment / apple
+const INITIAL_SPEED = 150; // move interval in ms
+const INITIAL_LENGTH = 5;  // starting snake length
 
-interface Bullet {
-  id: number;
-  x: number;
-  y: number;
-}
+export default function GameSnake() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [score, setScore] = useState(0);
 
-interface Asteroid {
-  id: number;
-  x: number;
-  y: number;
-}
+  const snakeRef = useRef<{ x: number; y: number }[]>([]);
+  const dirRef   = useRef<{ dx: number; dy: number }>({ dx: 1, dy: 0 });
+  const appleRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const timerRef = useRef<number>();
 
-export default function Game10() {
-  const [shipX, setShipX] = useState(window.innerWidth / 2 - SHIP_WIDTH / 2);
-  const [bullets, setBullets] = useState<Bullet[]>([]);
-  const [asteroids, setAsteroids] = useState<Asteroid[]>([]);
-  const [gameOver, setGameOver] = useState(false);
-  const bulletId = useRef(0);
-  const asteroidId = useRef(0);
-
-  const resetGame = () => {
-    setGameOver(false);
-    setAsteroids([]);
-    setBullets([]);
-    setShipX(window.innerWidth / 2 - SHIP_WIDTH / 2);
+  // place apple in a free spot
+  const placeApple = (cols: number, rows: number) => {
+    let ax: number, ay: number;
+    do {
+      ax = Math.floor(Math.random() * cols);
+      ay = Math.floor(Math.random() * rows);
+    } while (snakeRef.current.some(s => s.x === ax && s.y === ay));
+    appleRef.current = { x: ax, y: ay };
   };
 
-  const moveShip = (dir: "left" | "right") => {
-    setShipX((x) => {
-      const next = dir === "left" ? x - 30 : x + 30;
-      return Math.max(0, Math.min(window.innerWidth - SHIP_WIDTH, next));
+  // reset snake & score
+  const reset = (cols: number, rows: number) => {
+    const sx = Math.floor(cols / 2);
+    const sy = Math.floor(rows / 2);
+    snakeRef.current = Array.from({ length: INITIAL_LENGTH }, (_, i) => ({
+      x: sx - i,
+      y: sy
+    }));
+    dirRef.current = { dx: 1, dy: 0 };
+    placeApple(cols, rows);
+    setScore(0);
+    window.postMessage({ score: 0 }, "*");
+  };
+
+  // one tick
+  const step = (cols: number, rows: number) => {
+    const snake = snakeRef.current;
+    const head  = snake[0];
+    let nx = head.x + dirRef.current.dx;
+    let ny = head.y + dirRef.current.dy;
+
+    // wrap around edges
+    if (nx < 0)       nx = cols - 1;
+    else if (nx >= cols) nx = 0;
+    if (ny < 0)       ny = rows - 1;
+    else if (ny >= rows) ny = 0;
+
+    // self-collision → reset
+    if (snake.some(seg => seg.x === nx && seg.y === ny)) {
+      reset(cols, rows);
+      return;
+    }
+
+    snake.unshift({ x: nx, y: ny });
+
+    // ate apple?
+    if (nx === appleRef.current.x && ny === appleRef.current.y) {
+      setScore(s => {
+        const ns = s + 1;
+        window.postMessage({ score: ns }, "*");
+        return ns;
+      });
+      placeApple(cols, rows);
+    } else {
+      snake.pop();
+    }
+  };
+
+  // draw everything
+  const draw = () => {
+    const canvas = canvasRef.current!;
+    const ctx    = canvas.getContext("2d")!;
+    const w      = canvas.width;
+    const h      = canvas.height;
+
+    // background
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, w, h);
+
+    // draw apple 🍎
+    const ax = appleRef.current.x * CELL_SIZE + CELL_SIZE / 2;
+    const ay = appleRef.current.y * CELL_SIZE + CELL_SIZE / 2;
+    ctx.font = `${CELL_SIZE}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("🍎", ax, ay);
+
+    // draw snake
+    ctx.fillStyle = "#3f3";
+    snakeRef.current.forEach(seg => {
+      ctx.fillRect(
+        seg.x * CELL_SIZE,
+        seg.y * CELL_SIZE,
+        CELL_SIZE - 1,
+        CELL_SIZE - 1
+      );
     });
   };
 
+  // main setup: resize, controls, loop
   useEffect(() => {
-    const bulletInterval = setInterval(() => {
-      if (gameOver) return;
-      setBullets((prev) => [
-        ...prev,
-        {
-          id: bulletId.current++,
-          x: shipX + SHIP_WIDTH / 2 - BULLET_WIDTH / 2,
-          y: window.innerHeight - SHIP_HEIGHT - 10,
-        },
-      ]);
-    }, 300);
-    return () => clearInterval(bulletInterval);
-  }, [shipX, gameOver]);
+    const canvas = canvasRef.current!;
+    const parent = canvas.parentElement!;
 
-  useEffect(() => {
-    const asteroidInterval = setInterval(() => {
-      if (gameOver) return;
-      const x = Math.random() * (window.innerWidth - ASTEROID_SIZE);
-      setAsteroids((prev) => [
-        ...prev,
-        { id: asteroidId.current++, x, y: -ASTEROID_SIZE },
-      ]);
-    }, 1000);
-    return () => clearInterval(asteroidInterval);
-  }, [gameOver]);
+    const resize = () => {
+      canvas.width  = parent.clientWidth;
+      canvas.height = parent.clientHeight;
+      const cols = Math.floor(canvas.width  / CELL_SIZE);
+      const rows = Math.floor(canvas.height / CELL_SIZE);
+      reset(cols, rows);
+    };
+    resize();
+    window.addEventListener("resize", resize);
 
-  useEffect(() => {
-    const gameLoop = setInterval(() => {
-      if (gameOver) return;
+    // tap to turn (no instant 180°)
+    const onPointerDown = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx   = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+      const cy   = Math.floor((e.clientY - rect.top ) / CELL_SIZE);
+      const head = snakeRef.current[0];
+      const dx   = cx - head.x;
+      const dy   = cy - head.y;
+      let ndx = 0, ndy = 0;
+      if (Math.abs(dx) > Math.abs(dy)) ndx = dx > 0 ? 1 : -1;
+      else                             ndy = dy > 0 ? 1 : -1;
+      // ignore reverse
+      if (ndx === -dirRef.current.dx && ndy === -dirRef.current.dy) return;
+      dirRef.current = { dx: ndx, dy: ndy };
+    };
+    canvas.addEventListener("pointerdown", onPointerDown);
 
-      setBullets((prev) =>
-        prev
-          .map((b) => ({ ...b, y: b.y - BULLET_SPEED }))
-          .filter((b) => b.y > 0)
-      );
+    // game loop
+    timerRef.current = window.setInterval(() => {
+      const cols = Math.floor(canvas.width  / CELL_SIZE);
+      const rows = Math.floor(canvas.height / CELL_SIZE);
+      step(cols, rows);
+      draw();
+    }, INITIAL_SPEED);
 
-      setAsteroids((prev) =>
-        prev
-          .map((a) => ({ ...a, y: a.y + ASTEROID_SPEED }))
-          .filter((a) => {
-            if (a.y > window.innerHeight - SHIP_HEIGHT) {
-              if (a.x < shipX + SHIP_WIDTH && a.x + ASTEROID_SIZE > shipX) {
-                setGameOver(true);
-                setTimeout(() => resetGame(), 1000); // ✅ Auto restart
-                return false;
-              }
-            }
-            return a.y < window.innerHeight;
-          })
-      );
-
-      setAsteroids((ast) => {
-        return ast.filter((a) => {
-          const hit = bullets.some(
-            (b) =>
-              b.x < a.x + ASTEROID_SIZE &&
-              b.x + BULLET_WIDTH > a.x &&
-              b.y < a.y + ASTEROID_SIZE &&
-              b.y + BULLET_HEIGHT > a.y
-          );
-          if (hit) {
-            window.postMessage({ score: 1 }, "*");
-          }
-          return !hit;
-        });
-      });
-    }, 16);
-    return () => clearInterval(gameLoop);
-  }, [bullets, shipX, gameOver]);
+    return () => {
+      window.removeEventListener("resize", resize);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      clearInterval(timerRef.current);
+    };
+  }, []);
 
   return (
-    <div
-      className="h-dvh w-screen bg-black text-white relative overflow-hidden"
-      onTouchStart={(e) => {
-        const x = e.touches[0].clientX;
-        if (x < window.innerWidth / 2) moveShip("left");
-        else moveShip("right");
-      }}
-    >
-      <div
-        className="absolute bg-blue-400 rounded"
-        style={{
-          width: SHIP_WIDTH,
-          height: SHIP_HEIGHT,
-          bottom: 10,
-          left: shipX,
-        }}
+    <div className="h-full w-full bg-black">
+      <canvas
+        ref={canvasRef}
+        style={{ width: "100%", height: "100%", display: "block" }}
       />
-
-      {bullets.map((b) => (
-        <div
-          key={b.id}
-          className="absolute bg-white"
-          style={{
-            width: BULLET_WIDTH,
-            height: BULLET_HEIGHT,
-            left: b.x,
-            top: b.y,
-          }}
-        />
-      ))}
-
-      {asteroids.map((a) => (
-        <div
-          key={a.id}
-          className="absolute bg-red-500 rounded-full"
-          style={{
-            width: ASTEROID_SIZE,
-            height: ASTEROID_SIZE,
-            left: a.x,
-            top: a.y,
-          }}
-        />
-      ))}
     </div>
   );
 }

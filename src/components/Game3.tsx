@@ -129,7 +129,7 @@ export default function Game10() {
         style={{
           width: SHIP_WIDTH,
           height: SHIP_HEIGHT,
-          bottom: 10,
+          bottom: 40,
           left: shipX,
         }}
       />

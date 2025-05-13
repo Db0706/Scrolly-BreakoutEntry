@@ -1,129 +1,167 @@
+// components/GameSnake.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 
-const GRID_SIZE = 4;
-const TOTAL_CARDS = GRID_SIZE * GRID_SIZE;
+const CELL_SIZE = 20;      // size of one snake segment / apple
+const INITIAL_SPEED = 150; // move interval in ms
+const INITIAL_LENGTH = 5;  // starting snake length
 
-type Card = {
-  id: number;
-  symbol: string;
-  flipped: boolean;
-  matched: boolean;
-};
+export default function GameSnake() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [score, setScore] = useState(0);
 
-const SYMBOLS = ["🍕", "🚀", "🐶", "🎮", "💎", "🧠", "🍄", "⚡️"];
+  const snakeRef = useRef<{ x: number; y: number }[]>([]);
+  const dirRef   = useRef<{ dx: number; dy: number }>({ dx: 1, dy: 0 });
+  const appleRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const timerRef = useRef<number>();
 
-function shuffle<T>(array: T[]): T[] {
-  const copy = [...array];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
-}
-
-export default function Game9() {
-  const [cards, setCards] = useState<Card[]>([]);
-  const [flippedIndexes, setFlippedIndexes] = useState<number[]>([]);
-  const [gameWon, setGameWon] = useState(false);
-
-  const resetGame = () => {
-    const pairs = [...SYMBOLS, ...SYMBOLS];
-    const shuffled = shuffle(pairs).map((symbol, index) => ({
-      id: index,
-      symbol,
-      flipped: false,
-      matched: false,
-    }));
-    setCards(shuffled);
-    setFlippedIndexes([]);
-    setGameWon(false);
+  // place apple in a free spot
+  const placeApple = (cols: number, rows: number) => {
+    let ax: number, ay: number;
+    do {
+      ax = Math.floor(Math.random() * cols);
+      ay = Math.floor(Math.random() * rows);
+    } while (snakeRef.current.some(s => s.x === ax && s.y === ay));
+    appleRef.current = { x: ax, y: ay };
   };
 
+  // reset snake & score
+  const reset = (cols: number, rows: number) => {
+    const sx = Math.floor(cols / 2);
+    const sy = Math.floor(rows / 2);
+    snakeRef.current = Array.from({ length: INITIAL_LENGTH }, (_, i) => ({
+      x: sx - i,
+      y: sy
+    }));
+    dirRef.current = { dx: 1, dy: 0 };
+    placeApple(cols, rows);
+    setScore(0);
+    window.postMessage({ score: 0 }, "*");
+  };
+
+  // one tick
+  const step = (cols: number, rows: number) => {
+    const snake = snakeRef.current;
+    const head  = snake[0];
+    let nx = head.x + dirRef.current.dx;
+    let ny = head.y + dirRef.current.dy;
+
+    // wrap
+    if (nx < 0)       nx = cols - 1;
+    else if (nx >= cols) nx = 0;
+    if (ny < 0)       ny = rows - 1;
+    else if (ny >= rows) ny = 0;
+
+    // self-collision → reset
+    if (snake.some(seg => seg.x === nx && seg.y === ny)) {
+      reset(cols, rows);
+      return;
+    }
+
+    snake.unshift({ x: nx, y: ny });
+
+    // ate apple?
+    if (nx === appleRef.current.x && ny === appleRef.current.y) {
+      setScore(s => {
+        const ns = s + 1;
+        window.postMessage({ score: ns }, "*");
+        return ns;
+      });
+      placeApple(cols, rows);
+    } else {
+      snake.pop();
+    }
+  };
+
+  // draw
+  const draw = () => {
+    const canvas = canvasRef.current!;
+    const ctx    = canvas.getContext("2d")!;
+    const w      = canvas.width;
+    const h      = canvas.height;
+
+    // bg
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, w, h);
+
+    // apple
+    ctx.fillStyle = "#e33";
+    ctx.fillRect(
+      appleRef.current.x * CELL_SIZE,
+      appleRef.current.y * CELL_SIZE,
+      CELL_SIZE, CELL_SIZE
+    );
+
+    // snake
+    ctx.fillStyle = "#3f3";
+    snakeRef.current.forEach(seg => {
+      ctx.fillRect(
+        seg.x * CELL_SIZE,
+        seg.y * CELL_SIZE,
+        CELL_SIZE - 1, CELL_SIZE - 1
+      );
+    });
+  };
+
+  // setup loop & controls
   useEffect(() => {
-    resetGame();
+    const canvas = canvasRef.current!;
+    const parent = canvas.parentElement!;
+
+    const resize = () => {
+      canvas.width  = parent.clientWidth;
+      canvas.height = parent.clientHeight;
+      const cols = Math.floor(canvas.width  / CELL_SIZE);
+      const rows = Math.floor(canvas.height / CELL_SIZE);
+      reset(cols, rows);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    // tap to turn (ignore direct reverse)
+    const onPointerDown = (e: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx   = Math.floor((e.clientX - rect.left) / CELL_SIZE);
+      const cy   = Math.floor((e.clientY - rect.top ) / CELL_SIZE);
+      const head = snakeRef.current[0];
+      const dx   = cx - head.x;
+      const dy   = cy - head.y;
+      let ndx = 0, ndy = 0;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        ndx = dx > 0 ? 1 : -1;
+      } else {
+        ndy = dy > 0 ? 1 : -1;
+      }
+      // ignore if trying to reverse direction
+      if (ndx === -dirRef.current.dx && ndy === -dirRef.current.dy) {
+        return;
+      }
+      dirRef.current = { dx: ndx, dy: ndy };
+    };
+    canvas.addEventListener("pointerdown", onPointerDown);
+
+    // start the loop
+    timerRef.current = window.setInterval(() => {
+      const cols = Math.floor(canvas.width  / CELL_SIZE);
+      const rows = Math.floor(canvas.height / CELL_SIZE);
+      step(cols, rows);
+      draw();
+    }, INITIAL_SPEED);
+
+    return () => {
+      window.removeEventListener("resize", resize);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      clearInterval(timerRef.current);
+    };
   }, []);
 
-  useEffect(() => {
-    if (flippedIndexes.length === 2) {
-      const [i1, i2] = flippedIndexes;
-      const c1 = cards[i1];
-      const c2 = cards[i2];
-
-      if (c1.symbol === c2.symbol) {
-        // Match
-        setTimeout(() => {
-          const updated = [...cards];
-          updated[i1].matched = true;
-          updated[i2].matched = true;
-          setCards(updated);
-          setFlippedIndexes([]);
-
-          window.postMessage({ score: 1 }, "*"); // ✅ Global score update
-        }, 600);
-      } else {
-        // Not match
-        setTimeout(() => {
-          const updated = [...cards];
-          updated[i1].flipped = false;
-          updated[i2].flipped = false;
-          setCards(updated);
-          setFlippedIndexes([]);
-        }, 1000);
-      }
-    }
-
-    // Win check
-    if (cards.length && cards.every((c) => c.matched)) {
-      setGameWon(true);
-    }
-  }, [flippedIndexes]);
-
-  const handleFlip = (index: number) => {
-    if (flippedIndexes.length >= 2 || cards[index].flipped || cards[index].matched) return;
-
-    const updated = [...cards];
-    updated[index].flipped = true;
-    setCards(updated);
-    setFlippedIndexes((prev) => [...prev, index]);
-  };
-
   return (
-    <div className="h-vh w-screen bg-black text-white flex flex-col items-center justify-center p-4">
-      <div
-        className="grid gap-2"
-        style={{
-          display: "grid",
-          gridTemplateColumns: `repeat(${GRID_SIZE}, 60px)`,
-          gridTemplateRows: `repeat(${GRID_SIZE}, 60px)`,
-        }}
-      >
-        {cards.map((card, i) => (
-          <div
-            key={card.id}
-            onClick={() => handleFlip(i)}
-            className="bg-gray-800 rounded flex items-center justify-center cursor-pointer text-2xl"
-            style={{
-              backgroundColor: card.flipped || card.matched ? "#33ffbb" : "#111",
-            }}
-          >
-            {(card.flipped || card.matched) ? card.symbol : "?"}
-          </div>
-        ))}
-      </div>
-
-      {gameWon && (
-        <div className="absolute top-1/2 -translate-y-1/2 text-green-400 text-xl text-center">
-          🎉 You matched them all!<br />
-          <button
-            className="mt-4 px-4 py-2 bg-white text-black rounded"
-            onClick={resetGame}
-          >
-            Play Again
-          </button>
-        </div>
-      )}
+    <div className="h-full w-full bg-black">
+      <canvas
+        ref={canvasRef}
+        style={{ width: "100%", height: "100%", display: "block" }}
+      />
     </div>
   );
 }

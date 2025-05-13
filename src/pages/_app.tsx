@@ -1,3 +1,5 @@
+// pages/_app.tsx
+
 import { AppProps } from "next/app";
 import { FC, useMemo } from "react";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
@@ -10,6 +12,7 @@ import { AppBar } from "../components/AppBar";
 import { ContentContainer } from "../components/ContentContainer";
 import { Footer } from "../components/Footer";
 import Notifications from "../components/Notification";
+import { ScrollFeed } from "../components/ScrollFeed";
 import { GatewayProvider } from "@civic/solana-gateway-react";
 import { Connection, PublicKey } from "@solana/web3.js";
 
@@ -29,7 +32,7 @@ const App: FC<AppProps> = ({ Component, pageProps }) => {
     authMode: "Google",
     position: "top-right",
     logoDataUri: "OPTIONAL_LOGO_URL", // Add your logo here (if needed)
-    buttonLogoUri: "OPTIONAL_BUTTON_LOGO_URL", // Add your button logo here (if needed)
+    buttonLogoUri: "OPTIONAL_BUTTON_LOGO_URL", 
   });
   registerMoonGateWallet({
     authMode: "Apple",
@@ -53,16 +56,16 @@ const App: FC<AppProps> = ({ Component, pageProps }) => {
   // Wallet Adapters (Phantom and Solflare)
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    [] // Static array, no dependencies needed
+    []
   );
 
-  // Define the project address (replace with your actual project address)
+  // Define the project address
   const projectAddress = "A1gjvxiXX6sSKB22XLg3En3pY2jM1ENmVNMbQmoVXMmw";
 
-  // Define the Civic CAPTCHA Gatekeeper Network Public Key
+  // Civic CAPTCHA Gatekeeper Network Public Key
   const gatekeeperNetwork = useMemo(
     () => new PublicKey("ignREusXmGrscGNUesoU9mxfds9AiYTezUKex2PsZV6"),
-    [] // Static key, no dependencies needed
+    []
   );
 
   return (
@@ -71,23 +74,25 @@ const App: FC<AppProps> = ({ Component, pageProps }) => {
         <WalletProvider wallets={wallets} autoConnect>
           <WalletModalProvider>
             <GatewayProvider
-              connection={new Connection(endpoint, "confirmed")} // Use Honeycomb RPC for consistent environment
-              cluster="devnet-beta" // Keep as mainnet-beta unless explicitly testing
-              wallet={wallets[0]} // Use the first wallet adapter as the current wallet
-              gatekeeperNetwork={gatekeeperNetwork} // Ensure correct type is passed
-              options={{
-                autoShowModal: true, // Automatically show CAPTCHA modal
-              }}
+              connection={new Connection(endpoint, "confirmed")}
+              cluster="devnet-beta"
+              wallet={wallets[0]}
+              gatekeeperNetwork={gatekeeperNetwork}
+              options={{ autoShowModal: true }}
             >
               <ScoreProvider>
                 <ProfileProvider projectAddress={projectAddress}>
                   <div className="flex flex-col h-screen bg-gradient-to-r from-gray-900 via-black to-gray-900">
                     <Notifications />
                     <AppBar />
+
                     <ContentContainer>
-                      <Component {...pageProps} />
-                     
+                      <ScrollFeed>
+                        {[<Component key="page" {...pageProps} />]}
+                      </ScrollFeed>
                     </ContentContainer>
+
+                   
                   </div>
                 </ProfileProvider>
               </ScoreProvider>

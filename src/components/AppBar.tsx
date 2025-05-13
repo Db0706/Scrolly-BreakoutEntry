@@ -95,7 +95,7 @@ export const AppBar: FC = () => {
             </Menu.Items>
           </Menu>
 
-          <img src="/DDLogo.PNG" alt="Logo" className="h-5 sm:h-10" />
+          <img src="/NewLogo.png" alt="Logo" className="h-20 sm:h-10" />
         </div>
 
         {/* Score (centered) */}
