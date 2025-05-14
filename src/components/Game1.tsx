@@ -179,12 +179,14 @@ export default function Game4() {
       <div className="flex gap-4 z-10">
         <button
           onClick={rotate}
+          onTouchStart={(e) => e.stopPropagation()}      // ← here
           className="bg-[#33ffbb] text-black text-sm px-4 py-2 rounded"
         >
           Rotate
         </button>
         <button
           onClick={speedUpDrop}
+          onTouchStart={(e) => e.stopPropagation()}      // ← and here
           className="bg-[#33ffbb] text-black text-sm px-4 py-2 rounded"
         >
           Drop

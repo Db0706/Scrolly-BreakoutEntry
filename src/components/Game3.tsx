@@ -1,3 +1,4 @@
+// components/Game10.tsx
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -10,30 +11,26 @@ const SHIP_HEIGHT = 50;
 const BULLET_SPEED = 10;
 const ASTEROID_SPEED = 1;
 
-interface Bullet {
-  id: number;
-  x: number;
-  y: number;
-}
-
-interface Asteroid {
-  id: number;
-  x: number;
-  y: number;
-}
+interface Bullet { id: number; x: number; y: number; }
+interface Asteroid { id: number; x: number; y: number; }
 
 export default function Game10() {
   const [shipX, setShipX] = useState(window.innerWidth / 2 - SHIP_WIDTH / 2);
   const [bullets, setBullets] = useState<Bullet[]>([]);
   const [asteroids, setAsteroids] = useState<Asteroid[]>([]);
   const [gameOver, setGameOver] = useState(false);
+
   const bulletId = useRef(0);
   const asteroidId = useRef(0);
 
+  // count of destroyed asteroids
+  const destroyedCountRef = useRef(0);
+
   const resetGame = () => {
     setGameOver(false);
-    setAsteroids([]);
     setBullets([]);
+    setAsteroids([]);
+    destroyedCountRef.current = 0;
     setShipX(window.innerWidth / 2 - SHIP_WIDTH / 2);
   };
 
@@ -44,8 +41,9 @@ export default function Game10() {
     });
   };
 
+  // spawn bullets
   useEffect(() => {
-    const bulletInterval = setInterval(() => {
+    const iv = setInterval(() => {
       if (gameOver) return;
       setBullets((prev) => [
         ...prev,
@@ -56,11 +54,12 @@ export default function Game10() {
         },
       ]);
     }, 300);
-    return () => clearInterval(bulletInterval);
+    return () => clearInterval(iv);
   }, [shipX, gameOver]);
 
+  // spawn asteroids
   useEffect(() => {
-    const asteroidInterval = setInterval(() => {
+    const iv = setInterval(() => {
       if (gameOver) return;
       const x = Math.random() * (window.innerWidth - ASTEROID_SIZE);
       setAsteroids((prev) => [
@@ -68,19 +67,22 @@ export default function Game10() {
         { id: asteroidId.current++, x, y: -ASTEROID_SIZE },
       ]);
     }, 1000);
-    return () => clearInterval(asteroidInterval);
+    return () => clearInterval(iv);
   }, [gameOver]);
 
+  // game loop
   useEffect(() => {
-    const gameLoop = setInterval(() => {
+    const loop = setInterval(() => {
       if (gameOver) return;
 
+      // move bullets up and cull off-screen
       setBullets((prev) =>
         prev
           .map((b) => ({ ...b, y: b.y - BULLET_SPEED }))
           .filter((b) => b.y > 0)
       );
 
+      // move asteroids down and check ship collisions
       setAsteroids((prev) =>
         prev
           .map((a) => ({ ...a, y: a.y + ASTEROID_SPEED }))
@@ -88,7 +90,7 @@ export default function Game10() {
             if (a.y > window.innerHeight - SHIP_HEIGHT) {
               if (a.x < shipX + SHIP_WIDTH && a.x + ASTEROID_SIZE > shipX) {
                 setGameOver(true);
-                setTimeout(() => resetGame(), 1000); // ✅ Auto restart
+                setTimeout(resetGame, 1000);
                 return false;
               }
             }
@@ -96,8 +98,9 @@ export default function Game10() {
           })
       );
 
-      setAsteroids((ast) => {
-        return ast.filter((a) => {
+      // handle bullet–asteroid hits
+      setAsteroids((current) =>
+        current.filter((a) => {
           const hit = bullets.some(
             (b) =>
               b.x < a.x + ASTEROID_SIZE &&
@@ -106,13 +109,17 @@ export default function Game10() {
               b.y + BULLET_HEIGHT > a.y
           );
           if (hit) {
-            window.postMessage({ score: 1 }, "*");
+            destroyedCountRef.current += 1;
+            // only award 1 point every 5 destroys
+            if (destroyedCountRef.current % 5 === 0) {
+              window.postMessage({ score: 1 }, "*");
+            }
           }
           return !hit;
-        });
-      });
+        })
+      );
     }, 16);
-    return () => clearInterval(gameLoop);
+    return () => clearInterval(loop);
   }, [bullets, shipX, gameOver]);
 
   return (
@@ -120,10 +127,10 @@ export default function Game10() {
       className="h-dvh w-screen bg-black text-white relative overflow-hidden"
       onTouchStart={(e) => {
         const x = e.touches[0].clientX;
-        if (x < window.innerWidth / 2) moveShip("left");
-        else moveShip("right");
+        moveShip(x < window.innerWidth / 2 ? "left" : "right");
       }}
     >
+      {/* Ship */}
       <div
         className="absolute bg-blue-400 rounded"
         style={{
@@ -134,6 +141,7 @@ export default function Game10() {
         }}
       />
 
+      {/* Bullets */}
       {bullets.map((b) => (
         <div
           key={b.id}
@@ -147,6 +155,7 @@ export default function Game10() {
         />
       ))}
 
+      {/* Asteroids */}
       {asteroids.map((a) => (
         <div
           key={a.id}

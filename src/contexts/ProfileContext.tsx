@@ -10,102 +10,69 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import createEdgeClient from "@honeycomb-protocol/edge-client";
 import base58 from "bs58";
 import { sendClientTransactions } from "src/utils/sendClientTransactions";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "../../src/firebase";
+import { RPC_URL } from "src/pages/profile";
 
 const edgeClient = createEdgeClient(
   "https://edge.test.honeycombprotocol.com",
   true
 );
 
-const ProfileContext = createContext<any>(null);
-export const useProfile = () => useContext(ProfileContext);
-
-interface ProfileProviderProps {
-  children: ReactNode;
-  projectAddress: string;
+interface ProfileContextValue {
+  profile: any;
+  loadingProfile: boolean;
+  error: string | null;
+  status: string;
+  accessToken: string | null;
+  authenticateWithHoneycomb: () => Promise<string | null>;
+  refetchProfile: () => Promise<void>;
+  updateProfile: (info: { name?: string; bio?: string; pfp?: string }) => Promise<boolean>;
+  submitScore: (score: number) => Promise<boolean>;
+  createUserWithProfile: (info: { name: string; bio: string; pfp: string }) => Promise<void>;
 }
 
-export const ProfileProvider = ({
-  children,
+const ProfileContext = createContext<ProfileContextValue | null>(null);
+export const useProfile = () => {
+  const ctx = useContext(ProfileContext);
+  if (!ctx) throw new Error("useProfile must be inside ProfileProvider");
+  return ctx;
+};
+
+export const ProfileProvider: React.FC<{ projectAddress: string; children: ReactNode }> = ({
   projectAddress,
-}: ProfileProviderProps) => {
+  children,
+}) => {
+  const wallet = useWallet();
   const [profile, setProfile] = useState<any>(null);
-  const [loadingProfile, setLoadingProfile] = useState<boolean>(true);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const [accessToken, setAccessToken] = useState<string | null>(
     localStorage.getItem("honeycombAccessToken")
   );
+  const [status, setStatus] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>(""); // Status for SOL minting & creation
-  const wallet = useWallet();
 
-  // Helper to check stored token validity
-  const isTokenValid = (): boolean => {
-    const token = localStorage.getItem("honeycombAccessToken");
-    const expiry = localStorage.getItem("tokenExpiry");
-    return !!token && !!expiry && Date.now() < parseInt(expiry, 10);
-  };
+  const authenticateWithHoneycomb = useCallback(async (): Promise<string | null> => {
+    if (!wallet.publicKey || !wallet.signMessage) return null;
+    const { authRequest } = await edgeClient.authRequest({ wallet: wallet.publicKey.toString() });
+    const signed = await wallet.signMessage(new TextEncoder().encode(authRequest.message));
+    const signature = base58.encode(signed);
+    const { authConfirm } = await edgeClient.authConfirm({
+      wallet: wallet.publicKey.toString(),
+      signature,
+    });
+    localStorage.setItem("honeycombAccessToken", authConfirm.accessToken);
+    setAccessToken(authConfirm.accessToken);
+    return authConfirm.accessToken;
+  }, [wallet]);
 
-  const clearToken = () => {
-    localStorage.removeItem("honeycombAccessToken");
-    localStorage.removeItem("tokenExpiry");
-    setAccessToken(null);
-  };
-
-  // Auth flow (unchanged)
-  const authenticateWithHoneycomb = useCallback(
-    async (retry = false): Promise<string | null> => {
-      if (!wallet.publicKey || !wallet.signMessage) return null;
-      try {
-        console.log("🔑 Authenticating with Honeycomb...");
-        const {
-          authRequest: { message },
-        } = await edgeClient.authRequest({
-          wallet: wallet.publicKey.toString(),
-        });
-        const signedMessage = await wallet.signMessage(
-          new TextEncoder().encode(message)
-        );
-        const signature = base58.encode(signedMessage);
-        const {
-          authConfirm: { accessToken },
-        } = await edgeClient.authConfirm({
-          wallet: wallet.publicKey.toString(),
-          signature,
-        });
-        const expiry = Date.now() + 12 * 60 * 60 * 1000; // 12 hours
-        localStorage.setItem("honeycombAccessToken", accessToken);
-        localStorage.setItem("tokenExpiry", expiry.toString());
-        setAccessToken(accessToken);
-        console.log("✅ Authentication successful.");
-        return accessToken;
-      } catch (err) {
-        console.error("🚨 Authentication failed:", err);
-        if (!retry) {
-          console.warn("🔁 Retrying authentication...");
-          return authenticateWithHoneycomb(true);
-        }
-        clearToken();
-        return null;
-      }
-    },
-    [wallet.publicKey, wallet.signMessage]
-  );
-
-  // Fetch existing user/profile (slightly refactored to avoid redundant auth)
   const fetchProfile = useCallback(async () => {
     if (!wallet.connected || !wallet.publicKey) return;
     setLoadingProfile(true);
     try {
-      //if (!isTokenValid()) {
-       // await authenticateWithHoneycomb();
-      //}
       const { user } = await edgeClient.findUsers({
         wallets: [wallet.publicKey.toString()],
       });
       const userId = user?.[0]?.id;
       if (!userId) {
-        console.warn("⚠️ No user found for wallet.");
         setProfile(null);
         return;
       }
@@ -114,51 +81,33 @@ export const ProfileProvider = ({
         projects: [projectAddress],
         includeProof: true,
       });
-      if (profiles?.length > 0) {
-        setProfile(profiles[0]);
-        console.log("📄 Profile found:", profiles[0]);
-      } else {
-        console.warn("⚠️ No profile found.");
-        setProfile(null);
-      }
-    } catch (err) {
-      console.error("🚨 Error fetching profile:", err);
+      setProfile(profiles[0] ?? null);
+    } catch (err: any) {
+      console.error("Error fetching profile:", err);
+      setError(err.message);
       setProfile(null);
     } finally {
       setLoadingProfile(false);
     }
-  }, [wallet.connected, wallet.publicKey, projectAddress, authenticateWithHoneycomb]);
+  }, [wallet, projectAddress]);
 
-  // 1) Mint test SOL
   const handleMintTestSOL = useCallback(async () => {
-    if (!wallet.connected || !wallet.publicKey) {
-      alert("Please connect your wallet.");
-      return;
-    }
-    setStatus("Minting 1000 SOL into your wallet...");
-    try {
-      const response = await fetch("https://rpc.test.honeycombprotocol.com/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          method: "requestAirdrop",
-          params: [wallet.publicKey.toString(), 1000 * 1e9],
-          id: 1,
-          jsonrpc: "2.0",
-        }),
-      });
-      const result = await response.json();
-      if (result.error) throw new Error(result.error.message);
-      setStatus(
-        `Airdrop successful! TX ID: ${result.result}.`
-      );
-    } catch (err: any) {
-      console.error("Error minting test SOL:", err);
-      setStatus(`Error minting test SOL: ${err.message}`);
-    }
-  }, [wallet.connected, wallet.publicKey]);
+    if (!wallet.connected || !wallet.publicKey) return;
+    setStatus("Minting 1000 SOL...");
+    const res = await fetch(RPC_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        method: "requestAirdrop",
+        params: [wallet.publicKey.toString(), 1000 * 1e9],
+        id: 1,
+        jsonrpc: "2.0",
+      }),
+    }).then((r) => r.json());
+    if (res.error) throw new Error(res.error.message);
+    setStatus(`Airdrop TX: ${res.result}`);
+  }, [wallet]);
 
-  // 2) Create user + profile
   const createUserWithProfile = useCallback(
     async (userInfo: { name: string; bio: string; pfp: string }) => {
       if (!wallet.connected || !wallet.publicKey) {
@@ -166,15 +115,10 @@ export const ProfileProvider = ({
         return;
       }
       try {
-        // Airdrop first
         await handleMintTestSOL();
-
-        // Authenticate
         const token = await authenticateWithHoneycomb();
-        setStatus("Creating on-chain user + profile...");
-
-        // Build tx
-        const { createNewUserWithProfileTransaction: tx } =
+        setStatus("Creating user+profile...");
+        const { createNewUserWithProfileTransaction } =
           await edgeClient.createNewUserWithProfileTransaction(
             {
               project: projectAddress,
@@ -183,70 +127,78 @@ export const ProfileProvider = ({
               profileIdentity: "main",
               userInfo,
             },
-            { fetchOptions: { headers: { authorization: `Bearer ${token}` } } }
+            {
+              fetchOptions: {
+                headers: { authorization: `Bearer ${token}` },
+              },
+            }
           );
-
-        // Send
-        await sendClientTransactions(edgeClient, wallet, tx);
-        console.log("🎉 User and profile created!");
-        setStatus("User + profile successfully created!");
-
-        // Refresh
+        await sendClientTransactions(edgeClient, wallet, createNewUserWithProfileTransaction);
         await fetchProfile();
-      } catch (err) {
-        console.error("🚨 Error creating user and profile:", err);
-        setStatus(`Creation failed: ${(err as Error).message}`);
+        setStatus("");
+      } catch (err: any) {
+        console.error("Error creating profile:", err);
+        setStatus(`Create failed: ${err.message}`);
       }
     },
-    [wallet.connected, wallet.publicKey, projectAddress, handleMintTestSOL, authenticateWithHoneycomb, fetchProfile]
+    [wallet, projectAddress, handleMintTestSOL, authenticateWithHoneycomb, fetchProfile]
   );
 
-  // Submit score (unchanged)
-  const submitScore = async (score: number) => {
-    if (!profile || !wallet.publicKey) {
-      console.warn("⚠️ No profile or wallet connected.");
-      return;
-    }
-    try {
+  const updateProfile = useCallback(
+    async (info: { name?: string; bio?: string; pfp?: string }) => {
+      if (!wallet.publicKey || !accessToken || !profile?.address) return false;
+      const { createUpdateProfileTransaction } =
+        await edgeClient.createUpdateProfileTransaction(
+          {
+            profile: profile.address,
+            payer: wallet.publicKey.toString(),
+            info,
+          },
+          {
+            fetchOptions: {
+              headers: { authorization: `Bearer ${accessToken}` },
+            },
+          }
+        );
+      await sendClientTransactions(edgeClient, wallet, createUpdateProfileTransaction);
       await fetchProfile();
-      const token = accessToken || (await authenticateWithHoneycomb());
-      if (!token) throw new Error("⚠️ Access token unavailable.");
+      return true;
+    },
+    [wallet, accessToken, profile, fetchProfile]
+  );
 
-      const currentTop = parseInt(profile.customData?.topScore?.[0] || "0", 10);
-      const currentAll = parseInt(
-        profile.customData?.allTimeScore?.[0] || "0",
-        10
-      );
-      const newTop = Math.max(score, currentTop);
+  const submitScore = useCallback(
+    async (score: number) => {
+      if (!profile || !wallet.publicKey) return false;
+      const token = accessToken ?? (await authenticateWithHoneycomb());
+      const currentAll = parseInt(profile.customData?.allTimeScore?.[0] ?? "0", 10);
       const newAll = currentAll + score;
-
       const { createUpdateProfileTransaction } =
         await edgeClient.createUpdateProfileTransaction(
           {
             payer: wallet.publicKey.toString(),
             profile: profile.address,
             info: profile.info,
-            customData: {
-              add: {
-                topScore: [newTop.toString()],
-                allTimeScore: [newAll.toString()],
-              },
-            },
+            customData: { add: { allTimeScore: [newAll.toString()] } },
           },
-          { fetchOptions: { headers: { authorization: `Bearer ${token}` } } }
+          {
+            fetchOptions: {
+              headers: { authorization: `Bearer ${token}` },
+            },
+          }
         );
       await sendClientTransactions(edgeClient, wallet, createUpdateProfileTransaction);
-      console.log("🎉 Score successfully updated!");
       await fetchProfile();
-    } catch (err) {
-      console.error("🚨 Error updating score:", err);
-    }
-  };
+      return true;
+    },
+    [wallet, profile, accessToken, authenticateWithHoneycomb, fetchProfile]
+  );
 
-  // On mount/refetch
   useEffect(() => {
-    if (wallet.connected && wallet.publicKey) fetchProfile();
-  }, [wallet.connected, wallet.publicKey, projectAddress, fetchProfile]);
+    if (wallet.connected && wallet.publicKey) {
+      fetchProfile();
+    }
+  }, [wallet, fetchProfile]);
 
   return (
     <ProfileContext.Provider
@@ -254,34 +206,11 @@ export const ProfileProvider = ({
         profile,
         loadingProfile,
         error,
-        accessToken,
         status,
+        accessToken,
         authenticateWithHoneycomb,
         refetchProfile: fetchProfile,
-        updateProfile: async (info: {
-          name?: string;
-          bio?: string;
-          pfp?: string;
-        }) => {
-          if (!wallet.publicKey || !accessToken || !profile?.address) return false;
-          try {
-            const { createUpdateProfileTransaction } =
-              await edgeClient.createUpdateProfileTransaction(
-                {
-                  profile: profile.address,
-                  payer: wallet.publicKey.toString(),
-                  info,
-                },
-                { fetchOptions: { headers: { authorization: `Bearer ${accessToken}` } } }
-              );
-            await sendClientTransactions(edgeClient, wallet, createUpdateProfileTransaction);
-            await fetchProfile();
-            return true;
-          } catch {
-            console.error("🚨 Error updating profile info");
-            return false;
-          }
-        },
+        updateProfile,
         submitScore,
         createUserWithProfile,
       }}

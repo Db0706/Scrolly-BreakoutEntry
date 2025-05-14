@@ -107,7 +107,7 @@ export const AppBar: FC = () => {
         </div>
 
         {/* Wallet (right) */}
-        <div className="transform scale-75 sm:scale-100 origin-right">
+        <div className="transform scale-75 sm:scale-100 origin-right z-50">
           <WalletMultiButtonDynamic />
         </div>
       </div>

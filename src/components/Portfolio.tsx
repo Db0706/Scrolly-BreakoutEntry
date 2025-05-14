@@ -228,7 +228,7 @@ export const Portfolio = () => {
   };
 
   return (
-    <div className="flex justify-center items-start pt-16 min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
+    <div className="flex justify-center items-start pt-0 min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
       {loadingProfile ? (
         <div className="flex items-center justify-center h-96 text-white">
           <p>Loading...</p>
